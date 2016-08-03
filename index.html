@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>Bolgdcc by qazdcc</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">Bolgdcc</h1>
+      <h2 class="project-tagline">jdbcTemplate 详细使用 </h2>
+      <a href="https://github.com/qazdcc/bolgdcc" class="btn">View on GitHub</a>
+      <a href="https://github.com/qazdcc/bolgdcc/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/qazdcc/bolgdcc/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <p>RowMapper：用于将结果集每行数据转换为需要的类型，用户需实现方法mapRow(ResultSet rs, int rowNum)来完成将每行数据转换为相应的类型。         </p>
+
+<p>RowCallbackHandler：用于处理ResultSet的每一行结果，用户需实现方法processRow(ResultSet rs)来完成处理，在该回调方法中无需执行rs.next()，该操作由JdbcTemplate来执行，用户只需按行获取数据然后处理即可。</p>
+
+<p>ResultSetExtractor：用于结果集数据提取，用户需实现方法extractData(ResultSet rs)来处理结果集，用户必须处理整个结果集；</p>
+
+<p>//1.查询一行数据并返回int型结果</p>
+
+<p>jdbcTemplate.queryForInt("select count(*) from test");</p>
+
+<p>//2. 查询一行数据并将该行数据转换为Map返回</p>
+
+<p>jdbcTemplate.queryForMap("select * from test where name='name5'");</p>
+
+<p>//3.查询一行任何类型的数据，最后一个参数指定返回结果类型</p>
+
+<p>jdbcTemplate.queryForObject("select count(*) from test", Integer.class);</p>
+
+<p>//4.查询一批数据，默认将每行数据转换为Map     </p>
+
+<p>jdbcTemplate.queryForList("select * from test");</p>
+
+<p>//5.只查询一列数据列表，列类型是String类型，列名字是name</p>
+
+<p>jdbcTemplate.queryForList("</p>
+
+<p>select name from test where name=?", new Object[]{"name5"}, String.class);</p>
+
+<p>//6.查询一批数据，返回为SqlRowSet，类似于ResultSet，但不再绑定到连接上</p>
+
+<p>SqlRowSet rs = jdbcTemplate.queryForRowSet("select * from test");</p>
+
+<p>其中下面这些查询方法支持多列结果集：</p>
+
+<p>List query(String sql, RowMapper rowMapper)</p>
+
+<p>Map queryForMap(String sql)</p>
+
+<p>Object queryForObject(String sql, RowMapper rowMapper)</p>
+
+<p>List queryForList(String sql)</p>
+
+<p>其他不支持多列结果集的查询方法则会抛出IncorrectResultSetColumnCountException异常。</p>
+
+<p>从上面的结果可以看出只有返回值类型为List的方法可以接收零到多行结果集而不抛出异常，</p>
+
+<p>所以在使用query方法及queryForXXX方法时需要注意处理EmptyResultDataAccessException和IncorrectResultSizeDataAccessException这两个异常，</p>
+
+<p>这两个异常反映出数据库表中数据可能出现了缺失或冗余。如果返回值不符合期望值时，则需要排查业务流程或者数据了。</p>
+
+<p>最后我们来看看RowMapper接口，这个接口的实现类的功能是将结果集中的每一行数据封装成用户定义的结构，所以在查询方法中经常会被用到。</p>
+
+<p>Spring框架为我们提供了BeanPropertyRowMapper/ParameterizedBeanPropertyRowMapper，ColumnMapRowMapper和SingleColumnRowMapper这三大便利类。</p>
+
+<p>BeanPropertyRowMapper类与ParameterizedBeanPropertyRowMapper类的功能完全相同，当POJO对象和数据库表字段完全对应或者驼峰式与下划线式对应时，</p>
+
+<p>该类会根据构造函数中传递的class来自动填充数据。只是ParameterizedBeanPropertyRowMapper类使用泛型需要JDK5+支持。这里需要注意虽然这两个类提供了便利，</p>
+
+<p>但是由于使用反射导致性能下降，所以如果需要高性能则还是需要自己去实现RowMapper接口来包装数据。</p>
+
+<p>ColumnMapRowMapper类返回一个List对象，对象中的每一个元素都是一个以列名为key的Map对象。</p>
+
+<p>SingleColumnRowMapper类也返回一个List对象，对象中的每个元素是数据库中的某列的值。注意结果集必须是单列，不然会抛出IncorrectResultSetColumnCountException异常。</p>
+
+<p>JdbcTemplate是core包的核心类。它替我们完成了资源的创建以及释放工作，从而简化了我们对JDBC的使用。它还可以帮助我们避免一些常见的错误，比如忘记关闭数据库连接。</p>
+
+<p>JdbcTemplate将完成JDBC核心处理流程，比如SQL语句的创建、执行，而把SQL语句的生成以及查询结果的提取工作留给我们的应用代码。它可以完成SQL查询、更新以及调用存储过程，</p>
+
+<p>可以对ResultSet进行遍历并加以提取。它还可以捕获JDBC异常并将其转换成org.springframework.dao包中定义的，通用的，信息更丰富的异常。</p>
+
+<p>使用JdbcTemplate进行编码只需要根据明确定义的一组契约来实现回调接口。PreparedStatementCreator回调接口通过给定的Connection创建一个PreparedStatement，</p>
+
+<p>包含SQL和任何相关的参数。CallableStatementCreateor实现同样的处理，只不过它创建的是CallableStatement。RowCallbackHandler接口则从数据集的每一行中提取值。</p>
+
+<p>我们可以在一个service实现类中通过传递一个DataSource引用来完成JdbcTemplate的实例化，也可以在application context中配置一个JdbcTemplate bean，</p>
+
+<p>来供service使用。需要注意的是DataSource在application context总是配制成一个bean，第一种情况下，DataSource bean将传递给service，</p>
+
+<p>第二种情况下DataSource bean传递给JdbcTemplate bean。因为JdbcTemplate使用回调接口和SQLExceptionTranslator接口作为参数，所以一般情况下没有必要通过继承JdbcTemplate来定义其子类。</p>
+
+<p>JdbcTemplate中使用的所有SQL将会以“DEBUG”级别记入日志（一般情况下日志的category是JdbcTemplate相应的全限定类名，不过如果需要对JdbcTemplate进行定制的话，可能是它的子类名）。</p>
+
+<ol>
+<li>NamedParameterJdbcTemplate类</li>
+</ol>
+
+<p>NamedParameterJdbcTemplate类增加了在SQL语句中使用命名参数的支持。在此之前，在传统的SQL语句中，参数都是用'?'占位符来表示的。NamedParameterJdbcTemplate类内部封装了一个普通的JdbcTemplate，</p>
+
+<p>并作为其代理来完成大部分工作。下面的内容主要针对NamedParameterJdbcTemplate与JdbcTemplate的不同之处来加以说明，即如何在SQL语句中使用命名参数。</p>
+
+<p>通过下面的例子我们可以更好地了解NamedParameterJdbcTemplate的使用模式（在后面我们还有更好的使用方式）。</p>
+
+<p>// some JDBC-backed DAO class...</p>
+
+<p>public int countOfActorsByFirstName(String firstName) {</p>
+
+<p>String sql = "select count(0) from T_ACTOR where first_name = :first_name";</p>
+
+<p>NamedParameterJdbcTemplate template = new NamedParameterJdbcTemplate(this.getDataSource());</p>
+
+<p>SqlParameterSource namedParameters = new MapSqlParameterSource("first_name", firstName);</p>
+
+<p>return template.queryForInt(sql, namedParameters);</p>
+
+<p>}</p>
+
+<p>在上面例子中，sql变量使用了命名参数占位符“first_name”，与其对应的值存在namedParameters变量中（类型为MapSqlParameterSource）。</p>
+
+<p>如果你喜欢的话，也可以使用基于Map风格的名值对将命名参数传递给NamedParameterJdbcTemplate（NamedParameterJdbcTemplate实现了NamedParameterJdbcOperations接口，</p>
+
+<p>剩下的工作将由调用该接口的相应方法来完成，这里我们就不再赘述）：</p>
+
+<p>// some JDBC-backed DAO class...</p>
+
+<p>public int countOfActorsByFirstName(String firstName) {</p>
+
+<p>String sql = "select count(0) from T_ACTOR where first_name = :first_name";</p>
+
+<p>NamedParameterJdbcTemplate template = new NamedParameterJdbcTemplate(this.getDataSource());</p>
+
+<p>Map namedParameters = new HashMap();</p>
+
+<p>namedParameters.put("first_name", firstName);</p>
+
+<p>return template.queryForInt(sql, namedParameters);</p>
+
+<p>}</p>
+
+<p>另外一个值得一提的特性是与NamedParameterJdbcTemplate位于同一个包中的SqlParameterSource接口。在前面的代码片断中我们已经看到了该接口的实现</p>
+
+<p>（即MapSqlParameterSource类），SqlParameterSource可以用来作为NamedParameterJdbcTemplate命名参数的来源。MapSqlParameterSource类是一个非常简单的实现，</p>
+
+<p>它仅仅是一个java.util.Map适配器，当然其用法也就不言自明了（如果还有不明了的，可以在Spring的JIRA系统中要求提供更多的相关资料）。</p>
+
+<p>SqlParameterSource接口的另一个实现－－BeanPropertySqlParameterSource为我们提供了更有趣的功能。该类包装一个类似JavaBean的对象，所需要的命名参数值将由包装对象提供，</p>
+
+<p>大家必须牢记一点：NamedParameterJdbcTemplate类内部包装了一个标准的JdbcTemplate类。如果你需要访问其内部的JdbcTemplate实例（比如访问JdbcTemplate的一些方法）</p>
+
+<p>那么你需要使用getJdbcOperations()方法返回的JdbcOperations接口。（JdbcTemplate实现了JdbcOperations接口）。NamedParameterJdbcTemplate类是线程安全的，</p>
+
+<p>该类的最佳使用方式不是每次操作的时候实例化一个新的NamedParameterJdbcTemplate，而是针对每个DataSource只配置一个NamedParameterJdbcTemplate实例</p>
+
+<p>（比如在Spring IoC容器中使用Spring IoC来进行配置），然后在那些使用该类的DAO中共享该实例。</p>
+
+<p>2.SimpleJdbcTemplate类</p>
+
+<p>请注意该类所提供的功能仅适用于Java 5 (Tiger)。</p>
+
+<p>SimpleJdbcTemplate类是JdbcTemplate类的一个包装器（wrapper），它利用了Java 5的一些语言特性，比如Varargs和Autoboxing。对那些用惯了Java 5的程序员，这些新的语言特性还是很好用的。</p>
+
+<p>SimpleJdbcTemplate 类利用Java 5的语法特性带来的好处可以通过一个例子来说明。在下面的代码片断中我们首先使用标准的JdbcTemplate进行数据访问，接下来使用SimpleJdbcTemplate做同样的事情。</p>
+
+<p>// classic JdbcTemplate-style...</p>
+
+<p>public Actor findActor(long id) {</p>
+
+<p>String sql = "select id, first_name, last_name from T_ACTOR where id = ?";</p>
+
+<p>RowMapper mapper = new RowMapper() {</p>
+
+<p>public Object mapRow(ResultSet rs, int rowNum) throws SQLException {</p>
+
+<p>Actor actor = new Actor();</p>
+
+<p>actor.setId(rs.getLong(Long.valueOf(rs.getLong("id"))));</p>
+
+<p>actor.setFirstName(rs.getString("first_name"));</p>
+
+<p>actor.setLastName(rs.getString("last_name"));</p>
+
+<p>return actor;</p>
+
+<p>}</p>
+
+<p>};</p>
+
+<p>// normally this would be dependency injected of course...</p>
+
+<p>JdbcTemplate jdbcTemplate = new JdbcTemplate(this.getDataSource());</p>
+
+<p>// notice the cast, and the wrapping up of the 'id' argument</p>
+
+<p>// in an array, and the boxing of the 'id' argument as a reference type</p>
+
+<p>return (Actor) jdbcTemplate.queryForObject(sql, mapper, new Object[] {Long.valueOf(id)});</p>
+
+<p>}</p>
+
+<p>下面是同一方法的另一种实现，惟一不同之处是我们使用了SimpleJdbcTemplate，这样代码显得更加清晰。</p>
+
+<p>// SimpleJdbcTemplate-style...</p>
+
+<p>public Actor findActor(long id) {</p>
+
+<p>String sql = "select id, first_name, last_name from T_ACTOR where id = ?";</p>
+
+<p>ParameterizedRowMapper mapper = new ParameterizedRowMapper() {</p>
+
+<p>// notice the return type with respect to Java 5 covariant return types</p>
+
+<p>public Actor mapRow(ResultSet rs, int rowNum) throws SQLException {</p>
+
+<p>Actor actor = new Actor();</p>
+
+<p>actor.setId(rs.getLong("id"));</p>
+
+<p>actor.setFirstName(rs.getString("first_name"));</p>
+
+<p>actor.setLastName(rs.getString("last_name"));</p>
+
+<p>return actor;</p>
+
+<p>}</p>
+
+<p>};</p>
+
+<p>// again, normally this would be dependency injected of course...</p>
+
+<p>SimpleJdbcTemplate simpleJdbcTemplate = new SimpleJdbcTemplate(this.getDataSource());</p>
+
+<p>return simpleJdbcTemplate.queryForObject(sql, mapper, id);</p>
+
+<p>}</p>
+
+<p>11.3. 控制数据库连接</p>
+
+<p>11.3.1. DataSourceUtils类</p>
+
+<p>DataSourceUtils作为一个帮助类提供易用且强大的数据库访问能力， 我们可以使用该类提供的静态方法从JNDI获取数据库连接以及在必要的时候关闭之。 </p>
+
+<p>它提供支持线程绑定的数据库连接（比如使用DataSourceTransactionManager 的时候，将把数据库连接绑定到当前的线程上）。</p>
+
+<p>注：getDataSourceFromJndi(..)方法主要用于那些没有使用bean factory 或者application context的场合。如果使用application context，</p>
+
+<p>那么最好是在JndiObjectFactoryBean中配置bean或者直接使用 JdbcTemplate实例。JndiObjectFactoryBean </p>
+
+<p>能够通过JNDI获取DataSource并将DataSource作为引用参数传递给其他bean。 这样，在不同的DataSource之间切换只需要修改配置文件即可， </p>
+
+<p>甚至我们可以用一个非JNDI的DataSource来替换FactoryBean定义！</p>
+
+<p>11.3.2. SmartDataSource接口</p>
+
+<p>SmartDataSource是DataSource 接口的一个扩展，用来提供数据库连接。使用该接口的类在指定的操作之后可以检查是否需要关闭连接。 </p>
+
+<p>该接口在某些情况下非常有用，比如有些情况需要重用数据库连接。</p>
+
+<p>11.3.3. AbstractDataSource类</p>
+
+<p>AbstractDataSource是一个实现了DataSource 接口的abstract基类。它实现了DataSource接口的 一些无关痛痒的方法，如果你需要实现自己的DataSource，那么继承该类是个好主意。</p>
+
+<p>11.3.4. SingleConnectionDataSource类</p>
+
+<p>SingleConnectionDataSource是SmartDataSource接口 的一个实现，其内部包装了一个单连接。该连接在使用之后将不会关闭，很显然它不能在多线程 的环境下使用。</p>
+
+<p>当客户端代码调用close方法的时候，如果它总是假设数据库连接来自连接池（就像使用持久化工具时一样）， 你应该将suppressClose设置为true。 这样，通过该类获取的将是代理连接</p>
+
+<p>（禁止关闭）而不是原有的物理连接。 需要注意的是，我们不能把使用该类获取的数据库连接造型（cast）为Oracle Connection之类的本地数据库连接。</p>
+
+<p>SingleConnectionDataSource主要在测试的时候使用。 它使得测试代码很容易脱离应用服务器而在一个简单的JNDI环境下运行。 与DriverManagerDataSource不同的是，</p>
+
+<p>它始终只会使用同一个数据库连接， 从而避免每次建立物理连接的开销。</p>
+
+<p>11.3.5. DriverManagerDataSource类</p>
+
+<p>DriverManagerDataSource类实现了SmartDataSource接口。在applicationContext.xml中可以使用 bean properties来设置JDBC Driver属性，该类每次返回的都是一个新的连接。</p>
+
+<p>该类主要在测试以及脱离J2EE容器的独立环境中使用。它既可以用来在application context中作为一个DataSource bean，也可以在简单的JNDI环境下使用。</p>
+
+<p>由于Connection.close()仅仅只是简单的关闭数据库连接，因此任何能够获取DataSource的持久化代码都能很好的工作。不过使用JavaBean风格的连接池 （比如commons-dbcp）</p>
+
+<p>也并非难事。即使是在测试环境下，使用连接池也是一种比使用DriverManagerDataSource更好的做法。</p>
+
+<p>11.3.6. TransactionAwareDataSourceProxy类</p>
+
+<p>TransactionAwareDataSourceProxy作为目标DataSource的一个代理， 在对目标DataSource包装的同时，还增加了Spring的事务管理能力， 在这一点上，这个类的功能非常像J2EE服务器所提供的事务化的JNDIDataSource。</p>
+
+<p>该类几乎很少被用到，除非现有代码在被调用的时候需要一个标准的 JDBC DataSource接口实现作为参数。 这种情况下，这个类可以使现有代码参与Spring的事务管理。</p>
+
+<p>通常最好的做法是使用更高层的抽象 来对数据源进行管理，比如JdbcTemplate和DataSourceUtils等等。</p>
+
+<p>11.3.7. DataSourceTransactionManager类</p>
+
+<p>DataSourceTransactionManager类是PlatformTransactionManager接口的一个实现，用于处理单JDBC数据源。 它将从指定DataSource取得的JDBC连接绑定到当前线程，</p>
+
+<p>因此它也支持了每个数据源对应到一个线程。我们推荐在应用代码中使用DataSourceUtils.getConnection(DataSource)来获取 JDBC连接，而不是使用J2EE标准的DataSource.getConnection。</p>
+
+<p>因为前者将抛出 unchecked的org.springframework.dao异常，而不是checked的SQLException异常。Spring Framework中所有的类（比如 JdbcTemplate）都采用这种做法。</p>
+
+<p>如果不需要和这个 DataSourceTransactionManager类一起使用，DataSourceUtils 提供的功能跟一般的数据库连接策略没有什么两样，因此它可以在任何场景下使用。</p>
+
+<p>DataSourceTransactionManager类支持定制隔离级别，以及对SQL语句查询超时的设定。 为了支持后者，应用代码必须使用JdbcTemplate或者在每次创建SQL语句时调用DataSourceUtils.applyTransactionTimeout方法。</p>
+
+<p>在使用单个数据源的情形下，你可以用DataSourceTransactionManager来替代JtaTransactionManager， 因为DataSourceTransactionManager不需要容器支持JTA。</p>
+
+<p>如果你使用DataSourceUtils.getConnection(DataSource)来获取 JDBC连接，二者之间的切换只需要更改一些配置。最后需要注意的一点就是JtaTransactionManager不支持隔离级别的定制！</p>
+
+<p>用于查询的回调接口定义主要有以下三种： </p>
+
+<p>org.springframework.jdbc.core.ResultSetExtractor.  基本上属于JdbcTemplate内部使用的Callback接口，相对于下面两个Callback接口来说，ResultSetExtractor拥有更多的控制权，</p>
+
+<p>因为使用它，你需要自行处理ResultSet： </p>
+
+<p>public interface ResultSetExtractor </p>
+
+<p>{ Object extractData(ResultSet rs) throws SQLException, DataAccessException; } </p>
+
+<p>在直接处理完ResultSet之后，你可以将处理后的结果以任何你想要的形式包装后返回。 </p>
+
+<p>org.springframework.jdbc.core.RowCallbackHandler.  RowCallbackHandler相对于ResultSetExtractor来说，仅仅关注单行结果的处理，</p>
+
+<p>处理后的结果可以根据需要存放到当前RowCallbackHandler对象内或者使用JdbcTemplate的程序上下文中，当然，这个完全是看个人爱好了。 RowCallbackHandler的定义如下： </p>
+
+<p>public interface RowCallbackHandler </p>
+
+<p>{ void processRow(ResultSet rs) throws SQLException; } </p>
+
+<p>org.springframework.jdbc.core.RowMapper.  ResultSetExtractor的精简版，功能类似于RowCallbackHandler，也只关注处理单行的结果，不过，处理后的结果会由ResultSetExtractor实现类进行组合。 RowMapper的接口定义如下： </p>
+
+<p>public interface RowMapper </p>
+
+<p>{ Object mapRow(ResultSet rs, int rowNum) throws SQLException; } </p>
+
+<p>为了说明这三种Callback接口的使用和相互之间的区别，我们暂且设定如下场景： </p>
+
+<p>数据库表customer中存在多行信息，对该表查询后，我们需要将每一行的顾客信息都映射到域对象Customer中，并以java.util.List的形式返回所有的查询结果。 </p>
+
+<p>使用三种Callback接口作为参数的query方法的返回值不同: </p>
+
+<p>以ResultSetExtractor作为方法参数的query方法返回Object型结果，要使用查询结果，我们需要对其进行强制转型； </p>
+
+<p>以RowMapper接口作为方法参数的query方法直接返回List型的结果； </p>
+
+<p>以RowCallbackHandler作为方法参数的query方法，返回值为void； </p>
+
+<p>使用ResultSetExtractor作为Callback接口处理查询结果，我们需要自己声明集合类，自己遍历ResultSet，自己根据每行数据组装Customer对象，自己将组装后的Customer对象添加到集合类中，方法最终只负责将组装完成的集合返回； </p>
+
+<p>使用RowMapper比直接使用ResultSetExtractor要方便的多，只负责处理单行结果就行，现在，我们只需要将单行的结果组装后返回就行，剩下的工作，全部都是JdbcTemplate内部的事情了。 实际上，JdbcTemplae内部会使用一个ResultSetExtractor实现类来做其余的工作</p>
+
+<p>JdbcTemplae内部使用的这个ResultSetExtractor实现类为org.springframework.jdbc.core.RowMapperResultSetExtractor， 它内部持有一个RowMapper实例的引用，当处理结果集的时候，会将单行数据的处理委派给其所持有的RowMapper实例，而其余工作它负责： </p>
+
+<p>public Object extractData(ResultSet rs) throws SQLException { </p>
+
+<p>List results = (this.rowsExpected &gt; 0 ? new ArrayList(this.rowsExpected) : new ArrayList()); </p>
+
+<p>int rowNum = 0; </p>
+
+<p>while (rs.next()) { </p>
+
+<p>results.add(this.rowMapper.mapRow(rs, rowNum++)); </p>
+
+<p>} </p>
+
+<p>return results; </p>
+
+<p>} </p>
+
+<p>这下应该清楚为啥RowMapper为啥就处理单行结果就能完成ResultSetExtractor颇费周折的工作了吧？！ </p>
+
+<p>RowCallbackHandler虽然与RowMapper同是处理单行数据，不过，除了要处理单行结果，它还得负责最终结果的组装和获取工作，在这里我们是使用当前上下文声明的List取得最终查询结果， 不过，我们也可以单独声明一个RowCallbackHandler实现类，</p>
+
+<p>在其中声明相应的集合类，这样，我们可以通过该RowCallbackHandler实现类取得最终查询结果： </p>
+
+<p>public class GenericRowCallbackHandler implements RowCallbackHandler { </p>
+
+<p>private List collections = new ArrayList(); </p>
+
+<p>public void processRow(ResultSet rs) throws SQLException { </p>
+
+<p>Customer customer = new Customer(); </p>
+
+<p>customer.setFirstName(rs.getString(1)); </p>
+
+<p>customer.setLastName(rs.getString(2)); </p>
+
+<p>collections.add(customer); </p>
+
+<p>} </p>
+
+<p>public List getResults() </p>
+
+<p>{ </p>
+
+<p>return collections; </p>
+
+<p>} </p>
+
+<p>} </p>
+
+<p>GenericRowCallbackHandler handler = new GenericRowCallbackHandler(); </p>
+
+<p>jdbcTemplate.query("select * from customer",handler()); </p>
+
+<p>List customerList = handler.getResults(); </p>
+
+<p>该使用方式是明了了，不过GenericRowCallbackHandler重用性不佳。 </p>
+
+<p>RowCallbackHandler因为也是处理单行数据，所以，总得有人来做遍历ResultSet的工作，这个人其实也是一个ResultSetExtractor实现类， 它是JdbcTemplate一个内部静态类，名为RowCallbackHandlerResultSetExtractor，一看它的定义你就知道奥秘之所在了： </p>
+
+<p>private static class RowCallbackHandlerResultSetExtractor implements ResultSetExtractor { </p>
+
+<p>private final RowCallbackHandler rch; </p>
+
+<p>public RowCallbackHandlerResultSetExtractor(RowCallbackHandler rch) { </p>
+
+<p>this.rch = rch; </p>
+
+<p>} </p>
+
+<p>public Object extractData(ResultSet rs) throws SQLException { </p>
+
+<p>while (rs.next()) { </p>
+
+<p>this.rch.processRow(rs); </p>
+
+<p>} </p>
+
+<p>return null; </p>
+
+<p>} </p>
+
+<p>} </p>
+
+<p>总的来说，内部工作归根结底是由ResultSetExtractor做了，RowCallbackHandler和RowMapper只是为了帮助我们简化使用上的操作而已。 所以，实际使用中，RowCallbackHandler和RowMapper才是我们最常用的选择。</p>
+
+<p>package jdbc;</p>
+
+<p>import java.sql.PreparedStatement;</p>
+
+<p>import java.sql.ResultSet;</p>
+
+<p>import java.sql.SQLException;</p>
+
+<p>import java.util.ArrayList;</p>
+
+<p>import java.util.Arrays;</p>
+
+<p>import java.util.Calendar;</p>
+
+<p>import java.util.Collection;</p>
+
+<p>import java.util.Date;</p>
+
+<p>import java.util.HashMap;</p>
+
+<p>import java.util.List;</p>
+
+<p>import java.util.Map;</p>
+
+<p>import org.junit.Test;</p>
+
+<p>import org.junit.runner.RunWith;</p>
+
+<p>import org.springframework.beans.factory.annotation.Autowired;</p>
+
+<p>import org.springframework.jdbc.core.BatchPreparedStatementSetter;</p>
+
+<p>import org.springframework.jdbc.core.BeanPropertyRowMapper;</p>
+
+<p>import org.springframework.jdbc.core.ColumnMapRowMapper;</p>
+
+<p>import org.springframework.jdbc.core.JdbcTemplate;</p>
+
+<p>import org.springframework.jdbc.core.PreparedStatementSetter;</p>
+
+<p>import org.springframework.jdbc.core.RowMapper;</p>
+
+<p>import org.springframework.jdbc.core.SingleColumnRowMapper;</p>
+
+<p>import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;</p>
+
+<p>import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;</p>
+
+<p>import org.springframework.jdbc.core.namedparam.SqlParameterSource;</p>
+
+<p>import org.springframework.jdbc.support.GeneratedKeyHolder;</p>
+
+<p>import org.springframework.test.context.ContextConfiguration;</p>
+
+<p>import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;</p>
+
+<p>import jdbc.model.Person;</p>
+
+<p>import jdbc.service.PersonService;</p>
+
+<p>@ContextConfiguration(locations = "classpath:beans.xml")</p>
+
+<p>@RunWith(SpringJUnit4ClassRunner.class)</p>
+
+<p>public class JunitTest {</p>
+
+<pre><code>@Autowired
+
+private JdbcTemplate jdbcTemplate;
+
+
+
+@Autowired
+
+private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+
+
+
+@Autowired
+
+private PersonService personService;
+
+
+
+@Test
+
+public void query1() {
+
+    List&lt;Person&gt; a = jdbcTemplate.query("select * from person where id = ? or name = ?", new Object[] { 1, "张三" },
+
+            new RowMapper&lt;Person&gt;() {
+
+                @Override
+
+                public Person mapRow(ResultSet rs, int rowNum) throws SQLException {
+
+                    Person p = new Person();
+
+                    p.setId(rs.getInt("id"));
+
+                    p.setName(rs.getString("name"));
+
+                    p.setAge(rs.getInt("age"));
+
+                    p.setPass(rs.getString("pass"));
+
+                    return p;
+
+                }
+
+            });
+
+    System.out.println(a);
+
+
+
+    Map&lt;String, Object&gt; map = new HashMap&lt;&gt;();
+
+    ArrayList&lt;Integer&gt; arr = new ArrayList&lt;&gt;();
+
+    arr.add(1);
+
+    arr.add(3);
+
+    map.put("ids", arr);
+
+    List&lt;Person&gt; b = namedParameterJdbcTemplate.query("select * from person where id IN (:ids)", map,
+
+            new BeanPropertyRowMapper&lt;&gt;(Person.class));
+
+    System.out.println(b);
+
+}
+
+
+
+@Test
+
+public void save1() {
+
+    Person p = new Person();
+
+    p.setId(5);
+
+    p.setAge(11);
+
+    p.setName("Ead");
+
+    p.setPass("00000");
+
+    jdbcTemplate.update("insert into person(id,name,age,pass) values(?,?,?,?)",
+
+            new Object[] { p.getId(), p.getName(), p.getAge(), p.getPass() });
+
+}
+
+
+
+@Test
+
+public void save3() {
+
+    Calendar c = Calendar.getInstance();
+
+    jdbcTemplate.update("insert into testtime(time) values(?)", new Object[] { c.getTime() });
+
+}
+
+
+
+
+
+@Test
+
+public void save2() {
+
+    Person p = new Person();
+
+    p.setId(6);
+
+    p.setAge(11);
+
+    p.setName("Ead");
+
+    p.setPass("00000");
+
+    Person p1 = new Person();
+
+    p1.setId(6);
+
+    p1.setAge(11);
+
+    p1.setName("Ead");
+
+    p1.setPass("00000");
+
+    List&lt;Person&gt; list = new ArrayList&lt;&gt;();
+
+    list.add(p);
+
+    jdbcTemplate.update("insert into person(name,age,pass) values(?,?,?)", new PreparedStatementSetter() {
+
+        @Override
+
+        public void setValues(PreparedStatement ps) throws SQLException {
+
+            ps.setString(1, p.getName());
+
+            ps.setInt(2, p.getAge());
+
+            ps.setString(3, p.getPass());
+
+        }
+
+    });
+
+    System.out.println(personService.getPersonList());
+
+
+
+}
+
+
+
+@Test
+
+public void update1() {
+
+    Person p = new Person();
+
+    p.setId(6);
+
+    p.setAge(11);
+
+    p.setName("Eada");
+
+    p.setPass("232323");
+
+    jdbcTemplate.update("update person set name=？ where id=?", new PreparedStatementSetter() {
+
+        @Override
+
+        public void setValues(PreparedStatement ps) throws SQLException {
+
+            ps.setString(1, p.getName());
+
+            ps.setInt(2, p.getId());
+
+        }
+
+    });
+
+}
+
+
+
+@Test
+
+public void update2() {
+
+    Person p = new Person();
+
+    p.setId(6);
+
+    p.setAge(11);
+
+    p.setName("Eada");
+
+    p.setPass("232323");
+
+    jdbcTemplate.update("update person set name=? where id=?", new PreparedStatementSetter() {
+
+        @Override
+
+        public void setValues(PreparedStatement ps) throws SQLException {
+
+            ps.setString(1, p.getName());
+
+            ps.setInt(2, p.getId());
+
+        }
+
+    });
+
+}
+
+
+
+@Test
+
+public void delete() {
+
+    jdbcTemplate.update("delete from person where id = ?", new Object[] { 5 },
+
+            new int[] { java.sql.Types.INTEGER });
+
+}
+
+
+
+@Test
+
+public void queryForInt1() {
+
+    int i = jdbcTemplate.queryForInt("select count(0) from person where name = ?", new Object[] { "zhu" });
+
+    System.out.println(i);
+
+}
+
+
+
+@Test
+
+public void queryForObject2() {
+
+    String p = jdbcTemplate.queryForObject("select name from person where id = 3", String.class);
+
+    System.out.println(p);
+
+}
+
+
+
+@Test
+
+public void queryForObject3() { //
+
+    Person p = (Person) jdbcTemplate.queryForObject("select * from person where id = 3", new RowMapper&lt;Person&gt;() {
+
+        @Override
+
+        public Person mapRow(ResultSet rs, int rowNum) throws SQLException {
+
+            Person user = new Person();
+
+            user.setId(rs.getInt("id"));
+
+            user.setName(rs.getString("name"));
+
+            user.setPass(rs.getString("pass"));
+
+            user.setAge(rs.getInt("age"));
+
+            return user;
+
+        }
+
+    });
+
+    System.out.println(p);
+
+}
+
+
+
+@Test
+
+public void queryForList2() {
+
+    List&lt;String&gt; list = (List&lt;String&gt;) jdbcTemplate.queryForList("select name from person ", String.class);
+
+    System.out.println(list);
+
+}
+
+
+
+@Test
+
+public void queryForList3() { // 不行
+
+    List&lt;Person&gt; list = (List&lt;Person&gt;) jdbcTemplate.queryForList("select * from person ", Person.class);
+
+    System.out.println(list);
+
+}
+
+
+
+@Test
+
+public void getPersonInfo() {
+
+    List&lt;Map&lt;String, Object&gt;&gt; list = this.jdbcTemplate.queryForList("select * from person");
+
+    System.out.println(list);
+
+}
+
+
+
+@Test
+
+public void testBeanPropertyRowMapper() { // 推荐,返回 对象list
+
+    Collection&lt;Integer&gt; arr = new ArrayList&lt;&gt;();
+
+    arr.add(2);
+
+    arr.add(3);
+
+    List&lt;Person&gt; result = jdbcTemplate.query("select * from person where id &gt;?", new Object[] { 2 },
+
+            new BeanPropertyRowMapper&lt;Person&gt;(Person.class));
+
+    System.out.println(result);
+
+}
+
+
+
+@Test
+
+public void testColumnMapRowMapper() { // 返回对象map
+
+    List&lt;Map&lt;String, Object&gt;&gt; result = jdbcTemplate.query("select * from person", new ColumnMapRowMapper());
+
+    System.out.println(result);
+
+}
+
+
+
+@Test
+
+public void testSingleColumnRowMapper() { // 返回一列集合
+
+    List&lt;String&gt; result1 = jdbcTemplate.query("select name from person", new SingleColumnRowMapper&lt;String&gt;());
+
+    System.out.println(result1);
+
+}
+
+
+
+@Test
+
+public void list1() { // 查询结果
+
+    List&lt;Person&gt; list = (List&lt;Person&gt;) jdbcTemplate.query("select * from person", new RowMapper&lt;Person&gt;() {
+
+        @Override
+
+        public Person mapRow(ResultSet rs, int rowNum) throws SQLException {
+
+            Person user = new Person();
+
+            user.setId(rs.getInt("id"));
+
+            user.setAge(rs.getInt("age"));
+
+            user.setName(rs.getString("name"));
+
+            user.setPass(rs.getString("pass"));
+
+            return user;
+
+        }
+
+    });
+
+    System.out.println(list);
+
+}
+
+
+
+@Test
+
+public void batchUpdate() {
+
+    List&lt;Person&gt; list = new ArrayList&lt;&gt;();
+
+    Person p = new Person();
+
+    p.setId(6);
+
+    p.setAge(11);
+
+    p.setName("Edddddddada");
+
+    p.setPass("232323");
+
+    list.add(p);
+
+    int[] updateCounts = jdbcTemplate.batchUpdate("update person set name = ?, pass = ? where id = ?",
+
+            new BatchPreparedStatementSetter() {
+
+                @Override
+
+                public void setValues(PreparedStatement ps, int i) throws SQLException {
+
+                    ps.setString(1, ((Person) list.get(i)).getName());
+
+                    ps.setString(2, ((Person) list.get(i)).getPass());
+
+                    ps.setLong(3, ((Person) list.get(i)).getId());
+
+                }
+
+
+
+                @Override
+
+                public int getBatchSize() {
+
+                    return list.size();
+
+                }
+
+            });
+
+
+
+    System.out.println(Arrays.toString(updateCounts));
+
+}
+</code></pre>
+
+<p>} </p>
+
+<p>package jdbc;</p>
+
+<p>import java.sql.PreparedStatement;</p>
+
+<p>import java.sql.ResultSet;</p>
+
+<p>import java.sql.SQLException;</p>
+
+<p>import java.util.ArrayList;</p>
+
+<p>import java.util.Collection;</p>
+
+<p>import java.util.HashMap;</p>
+
+<p>import java.util.List;</p>
+
+<p>import java.util.Map;</p>
+
+<p>import org.junit.Test;</p>
+
+<p>import org.junit.runner.RunWith;</p>
+
+<p>import org.springframework.beans.factory.annotation.Autowired;</p>
+
+<p>import org.springframework.dao.DataAccessException;</p>
+
+<p>import org.springframework.jdbc.core.BatchPreparedStatementSetter;</p>
+
+<p>import org.springframework.jdbc.core.BeanPropertyRowMapper;</p>
+
+<p>import org.springframework.jdbc.core.JdbcTemplate;</p>
+
+<p>import org.springframework.jdbc.core.ResultSetExtractor;</p>
+
+<p>import org.springframework.jdbc.core.RowCallbackHandler;</p>
+
+<p>import org.springframework.jdbc.core.RowMapper;</p>
+
+<p>import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;</p>
+
+<p>import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;</p>
+
+<p>import org.springframework.jdbc.core.namedparam.SqlParameterSource;</p>
+
+<p>import org.springframework.jdbc.support.GeneratedKeyHolder;</p>
+
+<p>import org.springframework.jdbc.support.KeyHolder;</p>
+
+<p>import org.springframework.test.context.ContextConfiguration;</p>
+
+<p>import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;</p>
+
+<p>import jdbc.model.Person;</p>
+
+<p>import jdbc.service.PersonService;</p>
+
+<p>@ContextConfiguration(locations = "classpath:beans.xml")</p>
+
+<p>@RunWith(SpringJUnit4ClassRunner.class)</p>
+
+<p>public class NamedParameterJdbcTemplateTest {</p>
+
+<pre><code>@Autowired
+
+private JdbcTemplate jdbcTemplate;
+
+
+
+@Autowired
+
+private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+
+
+
+@Autowired
+
+private PersonService personService;
+
+
+
+@Test
+
+public void testInsertSql() {
+
+    String insertSql = "insert into person (name,age,pass) values(:name,:age,:pass);";
+
+    Map&lt;String, Object&gt; paramMap = new HashMap&lt;String, Object&gt;();
+
+    paramMap.put("name", "Aily");
+
+    paramMap.put("age", 22);
+
+    paramMap.put("pass", "333");
+
+    namedParameterJdbcTemplate.update(insertSql, paramMap);
+
+}
+
+
+
+@Test
+
+public void addStu() {
+
+
+
+    String sql = "insert into person (name,age,pass) values(:name,:age,:pass)";
+
+
+
+    Person p = new Person();
+
+    p.setAge(11);
+
+    p.setName("Edddad");
+
+    p.setPass("000ddd00");
+
+
+
+    SqlParameterSource ps = new BeanPropertySqlParameterSource(p);
+
+
+
+    KeyHolder keyholder = new GeneratedKeyHolder();
+
+
+
+    namedParameterJdbcTemplate.update(sql, ps, keyholder);
+
+    int m = keyholder.getKey().intValue();
+
+
+
+}
+
+
+
+@Test
+
+public void testupdate() {
+
+    String updatesql = "update person set age = :age where id &gt; :id ";
+
+    Map&lt;String, Object&gt; paramMap = new HashMap&lt;String, Object&gt;();
+
+    paramMap.put("id", 4);
+
+    paramMap.put("age", 10);
+
+    namedParameterJdbcTemplate.update(updatesql, paramMap);
+
+}
+
+
+
+@Test
+
+public void testupdate1() {
+
+    String updatesql = "update person set age = ? where id &gt; ? ";
+
+    Map&lt;String, Object&gt; paramMap = new HashMap&lt;String, Object&gt;();
+
+    paramMap.put("id", 4);
+
+    paramMap.put("age", 20);
+
+    jdbcTemplate.batchUpdate(updatesql, new BatchPreparedStatementSetter() {
+
+        @Override
+
+        public int getBatchSize() {
+
+            return paramMap.size();
+
+        }
+
+
+
+        @Override
+
+        public void setValues(PreparedStatement ps, int i) throws SQLException {
+
+            ps.setInt(1, (int) paramMap.get("age"));
+
+            ps.setInt(2, (int) paramMap.get("id"));
+
+        }
+
+    });
+
+}
+
+
+
+@Test
+
+public void tes1queryq() {
+
+    String selectSql = "select id,name from person where name=:name";
+
+    Map&lt;String, Object&gt; paramMap = new HashMap&lt;String, Object&gt;();
+
+    paramMap.put("name", "Ead");
+
+    List&lt;Integer&gt; result = new ArrayList&lt;Integer&gt;();
+
+    namedParameterJdbcTemplate.query(selectSql, paramMap, new RowCallbackHandler() {
+
+        @Override
+
+        public void processRow(ResultSet rs) throws SQLException {
+
+            result.add(rs.getInt("id"));
+
+        }
+
+    });
+
+    System.out.println(result);
+
+}
+
+
+
+@Test
+
+public void tes1queryq1() {
+
+    String selectSql = "select id,name from person where id IN (:ids)";
+
+    Collection&lt;Integer&gt; arr = new ArrayList&lt;&gt;();
+
+    arr.add(2);
+
+    arr.add(3);
+
+    Map&lt;String, Object&gt; paramMap = new HashMap&lt;String, Object&gt;();
+
+    paramMap.put("ids", arr);
+
+    List&lt;Integer&gt; result = new ArrayList&lt;Integer&gt;();
+
+    namedParameterJdbcTemplate.query(selectSql, paramMap, new RowCallbackHandler() {
+
+        @Override
+
+        public void processRow(ResultSet rs) throws SQLException {
+
+            result.add(rs.getInt("id"));
+
+        }
+
+    });
+
+    System.out.println(result);
+
+}
+
+
+
+@Test
+
+public void testquery2() {
+
+    Map&lt;String, Object&gt; paramMap = new HashMap&lt;String, Object&gt;();
+
+    paramMap.put("id", 4);
+
+    String sql = "select name,age,pass from person  " + "where id &gt; :id";
+
+    List&lt;Map&lt;String, Object&gt;&gt; result = namedParameterJdbcTemplate.queryForList(sql, paramMap);
+
+    for (Map&lt;String, Object&gt; map : result) {
+
+        System.out.println("------------");
+
+        System.out.println(map.get("name"));
+
+        System.out.println(map.get("age"));
+
+        System.out.println(map.get("pass"));
+
+    }
+
+    System.out.println(result);
+
+}
+
+
+
+@Test
+
+public void testdeleteSql() {
+
+    String deleteSql = "delete from test where name=:name";
+
+    Map&lt;String, Object&gt; paramMap = new HashMap&lt;String, Object&gt;();
+
+    paramMap.put("name", "Ead");
+
+    namedParameterJdbcTemplate.update(deleteSql, paramMap);
+
+}
+
+
+
+@Test
+
+public void testBeanPropertyRowMapper() { // 推荐,返回 对象list
+
+    List&lt;Person&gt; result = namedParameterJdbcTemplate.query("select * from person",
+
+            new BeanPropertyRowMapper&lt;Person&gt;(Person.class));
+
+    System.out.println(result);
+
+}
+
+
+
+/*-------------------三种结果集的查询使用------------*/
+
+
+
+@Test
+
+public void testResultSetExtractor() {
+
+    List&lt;Person&gt; list = (List&lt;Person&gt;) jdbcTemplate.query("select * from person",
+
+            new ResultSetExtractor&lt;List&lt;Person&gt;&gt;() {
+
+                public List&lt;Person&gt; extractData(ResultSet rs) throws SQLException, DataAccessException {
+
+                    List&lt;Person&gt; ps = new ArrayList&lt;&gt;();
+
+                    while (rs.next()) {
+
+                        Person p = new Person();
+
+                        p.setId(rs.getInt("id"));
+
+                        p.setName(rs.getString("name"));
+
+                        p.setAge(rs.getInt("age"));
+
+                        p.setPass(rs.getString("pass"));
+
+                        ps.add(p);
+
+                    }
+
+                    return ps;
+
+                }
+
+            });
+
+    System.out.println(list);// 返回整个查询结果
+
+}
+
+
+
+@Test
+
+public void testRowMapper() {
+
+    List&lt;Person&gt; list = jdbcTemplate.query("select * from person", new RowMapper&lt;Person&gt;() {
+
+        public Person mapRow(ResultSet rs, int rowNumber) throws SQLException {
+
+            Person p = new Person();
+
+            p.setId(rs.getInt("id"));
+
+            p.setName(rs.getString("name"));
+
+            p.setAge(rs.getInt("age"));
+
+            p.setPass(rs.getString("pass"));
+
+            return p;
+
+        }
+
+    });
+
+    System.out.println(list);// 返回整个查询结果
+
+}
+
+
+
+@Test
+
+public void testRowCallbackHandler() {
+
+    List&lt;Person&gt; list = new ArrayList&lt;&gt;();
+
+    jdbcTemplate.query("select * from person", new RowCallbackHandler() {
+
+        public void processRow(ResultSet rs) throws SQLException {
+
+            Person p = new Person();
+
+            p.setId(rs.getInt("id"));
+
+            p.setName(rs.getString("name"));
+
+            p.setAge(rs.getInt("age"));
+
+            p.setPass(rs.getString("pass"));
+
+            list.add(p);
+
+        }
+
+    });
+
+    System.out.println(list);// 返回整个查询结果
+
+}
+</code></pre>
+
+<p>} </p>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/qazdcc/bolgdcc">Bolgdcc</a> is maintained by <a href="https://github.com/qazdcc">qazdcc</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
